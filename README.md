@@ -1,9 +1,5 @@
 # MAFS 5370 Project 1
 
-### Student name: Angeline Candice
-
-### SID: 20634390
-
 Consider the discrete-time asset allocation example in Section 8.4 of Rao and Jelvis.
 
 Let the price vector \( X \) have dimension \( n \), where \( n > 2 \), and:
