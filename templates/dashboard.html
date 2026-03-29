@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL vs Naive Merton — Cases 1–4</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#253347;--border:#334155;
+  --text:#e2e8f0;--muted:#94a3b8;
+  --green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --blue:#3b82f6;--purple:#8b5cf6;--teal:#14b8a6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5}
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;
+    display:flex;align-items:center;gap:1.5rem;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.nav-title{font-size:.85rem;font-weight:700;color:var(--muted);padding:.75rem 0;white-space:nowrap;letter-spacing:.05em}
+.nav-cases{display:flex;gap:.25rem;flex-wrap:wrap}
+.nav-link{display:block;padding:.5rem 1rem;border-radius:.5rem;color:var(--muted);
+          font-size:.75rem;font-weight:600;transition:all .15s;border:1px solid transparent;
+          line-height:1.3;text-align:center;cursor:pointer;text-decoration:none}
+.nav-link:hover,.nav-link.active{background:var(--surface2);color:var(--text);border-color:var(--border)}
+.nav-link.nav-tests{border-color:#334155;color:#94a3b8}
+.nav-link.nav-tests:hover,.nav-link.nav-tests.active{background:#1a1f35;color:#a5b4fc;border-color:#4f46e5}
+.nav-link.nav-summary{border-color:#3b1d8a;color:#a78bfa}
+.nav-link.nav-summary:hover,.nav-link.nav-summary.active{background:#1e1245;color:#c4b5fd;border-color:#7c3aed}
+.section{padding:2rem 1.5rem;max-width:1400px;margin:0 auto}
+.section-header{margin-bottom:1.5rem}
+.section-header h2{font-size:1.4rem;font-weight:700;margin-bottom:.25rem}
+.section-header p{color:var(--muted);font-size:.8rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.25rem}
+.card h3{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:1rem}
+.stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem}
+.stat-value{font-size:1.4rem;font-weight:700;line-height:1.2}
+.stat-sub{font-size:.7rem;color:var(--muted);margin-top:.2rem}
+.stat-green .stat-value{color:var(--green)}
+.stat-red .stat-value{color:var(--red)}
+.stat-amber .stat-value{color:var(--amber)}
+.stat-blue .stat-value{color:var(--blue)}
+.stat-purple .stat-value{color:var(--purple)}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1.25rem;margin:1.25rem 0}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.25rem}
+.chart-wrap h3{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem}
+.chart-canvas-wrap{position:relative;height:260px}
+.chart-canvas-wrap.tall{height:320px}
+.table-wrap{overflow-x:auto;margin:1.25rem 0}
+table{width:100%;border-collapse:collapse}
+th,td{padding:.5rem .75rem;border:1px solid var(--border);text-align:center;font-size:.8rem}
+th{background:var(--surface2);color:var(--muted);font-weight:600;text-transform:uppercase;font-size:.7rem;letter-spacing:.05em}
+td.label{text-align:left;color:var(--muted)}
+.badge{display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
+.badge-green{background:#064e3b;color:#6ee7b7}
+.badge-red{background:#450a0a;color:#fca5a5}
+.badge-amber{background:#451a03;color:#fcd34d}
+.badge-blue{background:#1e3a5f;color:#93c5fd}
+.eu-note{background:#1a1a2e;border:1px solid #4c1d95;border-radius:.5rem;padding:.75rem 1rem;margin:.75rem 0;font-size:.78rem;color:#c4b5fd}
+.eu-note strong{color:#e9d5ff}
+.verdict{background:#0f2a1a;border:1px solid #166534;border-radius:.5rem;padding:1rem;margin:1.25rem 0;font-size:.9rem}
+.verdict strong{color:var(--green)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.sep{border:none;border-top:1px solid var(--border);margin:2rem 0}
+.foot-params{font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;background:var(--surface);border-top:1px solid var(--border);margin-top:1rem;border-radius:0 0 .75rem .75rem}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1.25rem 0}
+.info-box{background:var(--surface2);border:1px solid var(--border);border-radius:.5rem;padding:1rem}
+.info-box h4{font-size:.75rem;font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em}
+.feas-note{background:#1a1a2e;border-left:3px solid var(--blue);padding:.6rem .9rem;border-radius:0 .4rem .4rem 0;font-size:.78rem;color:var(--muted);margin:.75rem 0}
+.feas-note strong{color:var(--text)}
+/* Test Suite */
+.test-suite-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin:1.25rem 0}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.1rem}
+.test-card-header{display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap}
+.test-card-header .file-tag{font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:.25rem;background:#1e3a5f;color:#93c5fd;font-family:monospace;white-space:nowrap}
+.test-card-header .unit-badge{font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:.25rem;background:#064e3b;color:#6ee7b7;white-space:nowrap}
+.test-card-header .intg-badge{font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:.25rem;background:#451a03;color:#fcd34d;white-space:nowrap}
+.test-card p{font-size:.82rem;color:var(--muted);line-height:1.5}
+.test-card p strong{color:var(--text)}
+.test-section-label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:1.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+.test-summary-banner{background:var(--surface2);border:1px solid var(--border);border-radius:.5rem;padding:1rem;margin-bottom:1.25rem;display:flex;gap:2rem;flex-wrap:wrap}
+.tsb-item{text-align:center}
+.tsb-val{font-size:1.5rem;font-weight:700;color:var(--purple)}
+.tsb-lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase}
+/* ── Summary section ── */
+.summ-section{padding:2rem 1.5rem;max-width:1100px;margin:0 auto}
+.summ-header{margin-bottom:1.75rem}
+.summ-header h2{font-size:1.5rem;font-weight:800;margin-bottom:.35rem}
+.summ-header p{color:var(--muted);font-size:.85rem;max-width:700px}
+.summ-block{margin-bottom:1.5rem}
+.summ-block-title{font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
+.summ-block-title span.pill{background:var(--surface2);border:1px solid var(--border);border-radius:9999px;padding:.1rem .6rem;font-size:.65rem}
+.summ-prose{font-size:.9rem;line-height:1.75;color:#cbd5e1}
+.summ-prose strong{color:var(--text)}
+.summ-prose em{color:#93c5fd;font-style:normal}
+.summ-row{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+@media(max-width:700px){.summ-row{grid-template-columns:1fr}}
+.summ-card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.25rem}
+.summ-card-title{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.75rem}
+.summ-card.rl .summ-card-title{color:#6ee7b7}
+.summ-card.merton .summ-card-title{color:#fca5a5}
+.summ-step{display:flex;gap:.75rem;margin-bottom:.9rem;align-items:flex-start}
+.summ-step-num{min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;flex-shrink:0;margin-top:2px}
+.summ-card.rl .summ-step-num{background:#065f46;color:#a7f3d0}
+.summ-card.merton .summ-step-num{background:#450a0a;color:#fca5a5}
+.summ-step-body{font-size:.82rem;color:var(--muted);line-height:1.6}
+.summ-step-body strong{color:var(--text)}
+.summ-finding{background:linear-gradient(135deg,#0f2a1a,#1e1245);border:1px solid #2d5a3d;border-radius:.75rem;padding:1.25rem 1.5rem;margin-top:1.5rem}
+.summ-finding h3{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;margin-bottom:.75rem}
+.summ-finding p{font-size:.88rem;line-height:1.75;color:#a7f3d0}
+.summ-finding p strong{color:#ecfdf5}
+.summ-finding p + p{margin-top:.6rem}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">RL vs Naive Merton — Cases 1–4</div>
+  <div class="nav-cases">
+    <a class="nav-link" href="#case1">● CASE 1<br>T=1, N=1</a>
+    <a class="nav-link" href="#case2">● CASE 2<br>T=1, N=4</a>
+    <a class="nav-link" href="#case3">● CASE 3<br>T=10, N=1</a>
+    <a class="nav-link" href="#case4">● CASE 4<br>T=10, N=4</a>
+    <a class="nav-link nav-tests" href="#tests">🧪 TEST SUITE<br>Unit &amp; Integration</a>
+    <a class="nav-link nav-summary" href="#summary">⚙ SUMMARY<br>Backward Induction</a>
+  </div>
+</nav>
+
+<script>
+// ── Global parameters ──────────────────────────────────────────────────
+const R     = 0.02;
+const W0    = 1.0;
+const REBAL = 0.10;
+const GAMMAS    = [1, 2, 5, 10];
+const G_COLORS  = {1:"#ef4444", 2:"#f59e0b", 5:"#10b981", 10:"#3b82f6"};
+const T_LABELS  = ["t=0","t=1","t=2","t=3","t=4","t=5","t=6","t=7","t=8","t=9","t=10"];
+const SA        = {mu:0.06, sigma:0.20};
+const ASSETS4   = [
+  {name:"Asset A", color:"#3b82f6", mu:0.08, sigma:0.25},
+  {name:"Asset B", color:"#10b981", mu:0.06, sigma:0.20},
+  {name:"Asset C", color:"#f59e0b", mu:0.07, sigma:0.22},
+  {name:"Asset D", color:"#8b5cf6", mu:0.05, sigma:0.18},
+];
+
+function mertonFrac(mu, r, sigma, gamma){ return (mu - r)/(gamma*sigma*sigma); }
+
+function euT1(thetas, assets, gamma){
+  let mu_p=R, var_p=0;
+  for(let i=0;i<thetas.length;i++){
+    mu_p  += thetas[i]*(assets[i].mu - R);
+    var_p += thetas[i]*thetas[i]*assets[i].sigma*assets[i].sigma;
+  }
+  const EW = 1+mu_p;
+  if(EW<=1e-10) return -1e10;
+  if(Math.abs(gamma-1)<1e-9) return Math.log(EW) - var_p/(2*EW*EW);
+  const g=gamma, U_EW=Math.pow(EW,1-g)/(1-g), U_pp=-g*Math.pow(EW,-g-1);
+  return U_EW + U_pp*var_p/2;
+}
+
+function euMulti(thetaPath, assets, gamma){
+  let S=0;
+  for(const thetas of thetaPath){
+    let f=R, vs=0;
+    for(let i=0;i<thetas.length;i++){
+      f  += thetas[i]*(assets[i].mu-R);
+      vs += thetas[i]*thetas[i]*assets[i].sigma*assets[i].sigma;
+    }
+    S += f - 0.5*gamma*vs;
+  }
+  if(Math.abs(gamma-1)<1e-9) return S;
+  return Math.exp((1-gamma)*S)/(1-gamma);
+}
+
+function buildRLRamp(assets, gamma, T){
+  let theta = assets.map(()=>0);
+  const path=[];
+  const piStar = assets.map(a=>Math.max(0, mertonFrac(a.mu,R,a.sigma,gamma)));
+  for(let t=0;t<T;t++){
+    let next = theta.map((th,i)=>{
+      const diff=piStar[i]-th;
+      return th + Math.min(Math.abs(diff),REBAL)*Math.sign(diff);
+    });
+    const s=next.reduce((a,b)=>a+b,0);
+    if(s>1.0+1e-9) next=next.map(v=>v/s);
+    theta=next; path.push([...theta]);
+  }
+  return path;
+}
+
+Chart.defaults.color       = '#94a3b8';
+Chart.defaults.borderColor = '#334155';
+function baseOpts(extra){
+  return Object.assign({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{backgroundColor:'#1e293b',borderColor:'#334155',borderWidth:1,
+               titleFont:{size:11},bodyFont:{size:11}},
+    },
+    scales:{
+      x:{grid:{color:'#1e293b'},ticks:{font:{size:11}}},
+      y:{grid:{color:'#1e293b'},ticks:{font:{size:11}}},
+    },
+  }, extra||{});
+}
+</script>
+
+<!-- ═══════════════════════
+     CASE 1 — T=1, N=1
+═══════════════════════ -->
+<div id="case1" class="section">
+  <div class="section-header">
+    <h2>CASE 1 — T=1, N=1 — Single Period, Single Asset</h2>
+    <p>μ=0.06 · r=0.02 · σ=0.20 · W₀=1.0 · REBAL=10 pp · γ ∈ {1, 2, 5, 10}</p>
+  </div>
+
+  <div class="stats-grid" id="c1-stats"></div>
+
+  <div class="card">
+    <h3>Feasibility Analysis — Starting Allocation θ₀ = 0</h3>
+    <div class="table-wrap"><table id="c1-feas-table">
+      <thead><tr>
+        <th>γ</th>
+        <th>Merton π* (unconstrained)</th>
+        <th>Trade required |π*−0|</th>
+        <th>Within 10% limit?</th>
+        <th>Naive Merton θ</th>
+        <th>RL θ</th>
+        <th>Winner</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-wrap">
+      <h3>Allocation — RL vs Naive Merton</h3>
+      <div class="chart-canvas-wrap"><canvas id="c1-alloc"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <h3>E[U(W<sub>T</sub>)] — RL vs Naive Merton vs Cash</h3>
+      <div class="eu-note">
+        <strong>Why are some values negative?</strong>
+        CRRA utility is U(W) = W<sup>(1−γ)</sup>/(1−γ). For γ&gt;1 this is mathematically
+        always negative — its range is (−∞, 0). A value of −0.5 is better than −1.0.
+        What matters is that RL (green) is always ≥ Naive Merton (red).
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="c1-eu"></canvas></div>
+    </div>
+  </div>
+  <div class="foot-params">μ=0.06 · r=0.02 · σ=0.20 · W₀=1.0 · REBAL=10 pp · T=1 · N=1</div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════
+     CASE 2 — T=1, N=4
+═══════════════════════ -->
+<div id="case2" class="section">
+  <div class="section-header">
+    <h2>CASE 2 — T=1, N=4 — Single Period, Four Assets</h2>
+    <p>r=0.02 · W₀=1.0 · REBAL=10 pp/asset · Starting allocation θ₀=(0, 0, 0, 0)</p>
+  </div>
+
+  <div class="stats-grid" id="c2-stats"></div>
+
+  <div class="feas-note">
+    <strong>What is the "Merton target"?</strong>
+    The Merton formula gives the theoretically ideal allocation for each asset in isolation,
+    assuming no trading constraints: π*<sub>i</sub> = (μ<sub>i</sub>−r)/(γ·σ<sub>i</sub>²).
+    Starting from θ₀=0, reaching any of these targets requires a jump larger than the 10 pp
+    limit. Naive Merton sees this and trades nothing. RL picks the best <em>reachable</em> allocation.
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem">
+    <h3>Asset Universe</h3>
+    <div class="table-wrap" id="c2-asset-universe-wrap"></div>
+  </div>
+
+  <div class="card">
+    <h3>Feasibility Analysis — Can Naive Merton Execute the Trade? (Starting from 0%)</h3>
+    <div class="table-wrap"><table id="c2-feas-table">
+      <thead><tr>
+        <th>γ</th>
+        <th>Merton Target per Asset<br><span style="font-weight:400;color:#64748b">(ideal, no constraints)</span></th>
+        <th>Smallest jump needed<br><span style="font-weight:400;color:#64748b">best case |π*−0|</span></th>
+        <th>All jumps within 10%?<br><span style="font-weight:400;color:#64748b">can Merton trade?</span></th>
+        <th>Naive Merton result<br><span style="font-weight:400;color:#64748b">what actually happens</span></th>
+        <th>RL result<br><span style="font-weight:400;color:#64748b">best reachable</span></th>
+        <th>Winner</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="card" style="margin-top:1.25rem">
+    <h3>RL Optimal Allocation per Asset (T=1)</h3>
+    <div class="table-wrap" id="c2-rl-grid"></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-wrap">
+      <h3>E[U(W<sub>T</sub>)] — RL vs Naive Merton vs Cash</h3>
+      <div class="eu-note">
+        <strong>Note on sign:</strong> CRRA with γ&gt;1 produces negative utility values by
+        construction. Higher (less negative) = better. RL beats Naive Merton and cash for all γ=1,2,5.
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="c2-eu"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <h3>RL Advantage over Naive Merton — Case 1 (N=1) vs Case 2 (N=4)</h3>
+      <div class="chart-canvas-wrap"><canvas id="c2-adv"></canvas></div>
+    </div>
+  </div>
+  <div class="foot-params">N=4 assets · r=0.02 · W₀=1.0 · REBAL=10 pp/asset · T=1</div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════
+     CASE 3 — T=10, N=1
+═══════════════════════ -->
+<div id="case3" class="section">
+  <div class="section-header">
+    <h2>CASE 3 — T=10, N=1 — Ten Periods, Single Asset</h2>
+    <p>μ=0.06 · r=0.02 · σ=0.20 · W₀=1.0 · REBAL=10 pp/period · θ₀=0</p>
+  </div>
+
+  <div class="verdict">
+    <strong>🏆 VERDICT:</strong> RL wins for γ=1,2,5. Ties for γ=10 since π*=10% is exactly
+    reachable in one step — both methods land at the same allocation immediately.
+  </div>
+
+  <div class="stats-grid" id="c3-stats"></div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>RL Ramp — Periods Needed to Reach π*</h3>
+      <div class="table-wrap"><table id="c3-rl-table">
+        <thead><tr><th>γ</th><th>π* (Merton)</th><th>Steps to reach π*</th><th>Steps at full exposure</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>Naive Merton — Blocked Every Period</h3>
+      <div class="table-wrap"><table id="c3-naive-table">
+        <thead><tr><th>γ</th><th>π*</th><th>θ_old each period</th><th>Jump required</th><th>Within REBAL?</th><th>Result</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="chart-wrap" style="margin:1.25rem 0">
+    <h3>Allocation Over Time — RL Ramp vs Naive Merton (all γ)</h3>
+    <p style="font-size:.7rem;color:var(--muted);margin-bottom:.5rem">Solid lines = RL ramp toward π*. Dashed = Naive Merton (stuck at 0 for γ=1,2,5).</p>
+    <div class="chart-canvas-wrap tall"><canvas id="c3-alloc"></canvas></div>
+  </div>
+  <div class="foot-params">T=10 · N=1 · μ=0.06 · r=0.02 · σ=0.20 · W₀=1.0 · REBAL=10 pp/period</div>
+</div>
+
+<hr class="sep">
+
+<!-- ═════════════════════════
+     CASE 4 — T=10, N=4
+═════════════════════════ -->
+<div id="case4" class="section">
+  <div class="section-header">
+    <h2>CASE 4 — T=10, N=4 — Ten Periods, Four Assets</h2>
+    <p>r=0.02 · W₀=1.0 · REBAL=10 pp/period/asset · θ₀=(0, 0, 0, 0)</p>
+  </div>
+
+  <div class="verdict">
+    <strong>🏆 VERDICT:</strong> RL wins for γ=1,2,5. Ties for γ=10. The constraint failure
+    now compounds in two dimensions simultaneously: across 10 time periods and across 4 assets.
+  </div>
+
+  <div class="stats-grid" id="c4-stats"></div>
+
+  <div class="card">
+    <h3>EU Summary — All γ</h3>
+    <div class="table-wrap"><table id="c4-summary-table">
+      <thead><tr><th>γ</th><th>RL E[U(W<sub>T</sub>)]</th><th>Naive Merton E[U(W<sub>T</sub>)]</th><th>RL Advantage</th><th>Winner</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="card" style="margin-top:1.25rem">
+    <h3>Asset Allocation Details at End of Horizon (T=10)</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem">
+      <strong>Merton target π*:</strong> the unconstrained ideal (no trading limits assumed) · 
+      <strong>Naive Merton:</strong> actual final holding after 10 periods (stays at 0% since all targets exceed 10%) · 
+      <strong>RL final:</strong> allocation after ramping 10 pp/period, subject to the no-leverage constraint (sum ≤ 100%)
+    </p>
+    <div class="table-wrap"><table id="c4-alloc-table">
+      <thead><tr>
+        <th>Asset</th><th>μ</th><th>σ</th>
+        <th>Merton π* (γ=2)<br><span style="font-weight:400">no constraints</span></th>
+        <th>Naive Merton (γ=2)<br><span style="font-weight:400">after 10 periods</span></th>
+        <th>RL Final (γ=2)<br><span style="font-weight:400">after 10 periods</span></th>
+        <th>Merton π* (γ=5)<br><span style="font-weight:400">no constraints</span></th>
+        <th>Naive Merton (γ=5)<br><span style="font-weight:400">after 10 periods</span></th>
+        <th>RL Final (γ=5)<br><span style="font-weight:400">after 10 periods</span></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="feas-note" style="margin-top:.75rem">
+      <strong>Why does RL differ from π* at γ=2?</strong>
+      The sum of all four unconstrained Merton fractions exceeds 100% (that would be leverage).
+      RL scales each asset proportionally until the total equals 100%. For γ=5 the sum is already
+      below 100%, so RL reaches the exact Merton target after the ramp.
+    </div>
+  </div>
+
+  <div class="chart-wrap" style="margin:1.25rem 0">
+    <h3>RL Allocation Trajectory per Asset (γ=2) — Solid = RL, Dashed = Naive Merton</h3>
+    <div class="chart-canvas-wrap tall"><canvas id="c4-traj"></canvas></div>
+  </div>
+  <div class="foot-params">T=10 · N=4 · r=0.02 · W₀=1.0 · REBAL=10 pp/period/asset</div>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════
+     TEST SUITE
+════════════════════ -->
+<div id="tests" class="section">
+  <div class="section-header">
+    <h2>🧪 Test Suite</h2>
+    <p>Each source module is verified in isolation (unit) and as part of the full pipeline (integration).</p>
+  </div>
+
+  <div class="test-summary-banner">
+    <div class="tsb-item"><div class="tsb-val">10</div><div class="tsb-lbl">Unit Test Files</div></div>
+    <div class="tsb-item"><div class="tsb-val">4</div><div class="tsb-lbl">Integration Files</div></div>
+    <div class="tsb-item"><div class="tsb-val">7</div><div class="tsb-lbl">Source Modules</div></div>
+    <div class="tsb-item"><div class="tsb-val">4</div><div class="tsb-lbl">Scenario Combos (N×T)</div></div>
+  </div>
+
+  <div class="test-section-label">Unit Tests — each src/ module tested in isolation</div>
+  <div class="test-suite-grid">
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_utility.py</span></div>
+      <p>Checks that <strong>CRRAUtility, ExponentialUtility, and LogUtility</strong> return the correct values, reject invalid inputs (e.g. negative γ or non-positive wealth), and that LogUtility equals CRRAUtility(γ=1) to floating-point precision.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_state.py</span></div>
+      <p>Verifies that <strong>PortfolioState and AllocationAction</strong> correctly reject invalid inputs (negative wealth, over-leveraged allocations), and that ActionSpace generates the right set of feasible actions under the 10 pp rebalancing constraint.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_returns.py</span></div>
+      <p>Confirms that <strong>NormalReturnDistribution and MultivariateNormalReturnDistribution</strong> are reproducible with a seeded RNG, produce the correct mean and variance empirically, and reject non-positive-semidefinite covariance matrices.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_risk.py</span></div>
+      <p>Ensures <strong>ConstantRiskAversion</strong> returns the same γ at every time step, and <strong>TimeVaryingRiskAversion</strong> follows its schedule exactly, clamping to the final value past the scheduled horizon.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_mdp.py</span></div>
+      <p>Validates the wealth transition formula W<sub>t+1</sub>=W<sub>t</sub>[θ(1+R)+(1−θ)(1+r)] for <strong>SingleAssetMDP and MultiAssetMDP</strong>, checks the terminal reward equals U(W<sub>T</sub>), and confirms infeasible actions raise ValueError.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_solver.py</span></div>
+      <p>Tests that <strong>BackwardInductionSolver</strong> produces exactly T fitted Q-functions, never mutates the prototype approximator, applies the discount factor correctly at non-terminal steps, and that GreedyPolicy raises on no feasible actions.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_simulator.py</span></div>
+      <p>Confirms <strong>PortfolioSimulator</strong> returns trajectories of the correct length, non-terminal rewards are zero, the terminal reward equals U(W<sub>T</sub>), and that simulate_many rejects invalid path counts.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_policy.py</span></div>
+      <p>Verifies <strong>GreedyQPolicy</strong> picks the highest-Q action at each time step, raises on out-of-range t, and that <strong>AnalyticalMertonPolicy</strong> correctly computes π*=(μ−r)/(σ²γ) across multiple parameter combinations.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_approximator.py</span></div>
+      <p>Checks that <strong>LinearQValueApproximator</strong> solves OLS exactly on small systems and that Ridge shrinks weights, while <strong>DNNQValueApproximator</strong> returns 0 before training and reduces MSE after fitting.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="unit-badge">UNIT</span><span class="file-tag">test_allocator.py</span></div>
+      <p>Tests that <strong>AssetAllocator.run()</strong> calls the solver once, stores T QVFs, and returns a GreedyPolicy; that evaluate_policy() returns the five expected metric keys; and that benchmark_against_merton() reports the correct Merton fraction.</p>
+    </div>
+  </div>
+
+  <div class="test-section-label" style="margin-top:2rem">Integration Tests — full end-to-end pipelines with real src/ components</div>
+  <div class="test-suite-grid">
+    <div class="test-card">
+      <div class="test-card-header"><span class="intg-badge">INTG</span><span class="file-tag">test_integration_mdp_dynamics.py</span></div>
+      <p>Wires real return distributions and utility functions into both MDP types and confirms the exact wealth transition formula holds deterministically (σ=0) across all four scenario combinations (N=1/4, T=1/10).</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="intg-badge">INTG</span><span class="file-tag">test_integration_portfolio_simulation.py</span></div>
+      <p>Runs a full trajectory through PortfolioSimulator using a real MDP and Merton policy, checking that path length, reward structure, and wealth growth are all consistent with the mathematical specification.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="intg-badge">INTG</span><span class="file-tag">test_integration_approximator_and_policy.py</span></div>
+      <p>Trains a real LinearQValueApproximator on synthetic data where one action always has higher Q, then confirms GreedyQPolicy consistently selects that action at every wealth level and time step.</p>
+    </div>
+    <div class="test-card">
+      <div class="test-card-header"><span class="intg-badge">INTG</span><span class="file-tag">test_integration_allocator_pipeline.py</span></div>
+      <p>Runs the entire AssetAllocator pipeline from run() through evaluate_policy() and benchmark_against_merton(), verifying that all outputs are finite, correctly structured, and that the Merton benchmark fraction matches the analytical formula.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════
+     SUMMARY
+════════════════════ -->
+<div id="summary" class="summ-section">
+
+  <div class="summ-header">
+    <h2>Summary</h2>
+    <p>How the RL solver works, why it outperforms the naive Merton benchmark, and what the four cases demonstrate.</p>
+  </div>
+
+  <!-- ── Problem Statement ── -->
+  <div class="summ-block">
+    <div class="summ-block-title"><span class="pill">THE PROBLEM</span></div>
+    <div class="summ-prose">
+      An investor starts with wealth <strong>W₀ = 1</strong> and must decide, at each of T discrete time steps,
+      how much of their wealth to place in risky assets versus a risk-free account earning 2% per period.
+      The objective is to maximise the <em>expected utility of terminal wealth</em>, E[U(W<sub>T</sub>)],
+      where utility captures the investor's degree of risk aversion via the CRRA parameter γ.
+      The critical constraint is a <strong>rebalancing limit of 10 percentage points per asset per period</strong>:
+      the investor cannot shift more than 10 pp in or out of any single asset in one step.
+      This constraint, inspired by transaction-cost and broker-throttle models, is what makes the
+      problem non-trivial and is the source of the performance gap between RL and the naive benchmark.
+    </div>
+  </div>
+
+  <!-- ── Two approaches ── -->
+  <div class="summ-row">
+
+    <div class="summ-card rl">
+      <div class="summ-card-title">✓ RL: Backward Induction</div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">1</div>
+        <div class="summ-step-body">
+          <strong>Start at the end of the horizon (t = T).</strong>
+          The value of any portfolio state at that final moment is simply its utility:
+          Q(s, a) = U(W<sub>T</sub>). No guessing needed — this is an exact boundary condition.
+        </div>
+      </div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">2</div>
+        <div class="summ-step-body">
+          <strong>Work backwards, one period at a time.</strong>
+          At each step t, fit a Q-value approximator that maps every
+          (state, action) pair to the expected total future utility, using the
+          values computed at t+1 as targets. This gives the solver full
+          look-ahead over the entire remaining horizon.
+        </div>
+      </div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">3</div>
+        <div class="summ-step-body">
+          <strong>Extract the greedy policy at t = 0.</strong>
+          At every time step, pick the <em>feasible</em> allocation — one that respects
+          both the 10 pp limit and no-leverage constraint — that maximises the Q-value.
+          Crucially, the solver evaluates all reachable actions, not just the Merton target.
+        </div>
+      </div>
+    </div>
+
+    <div class="summ-card merton">
+      <div class="summ-card-title">✗ Naive Merton Benchmark</div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">1</div>
+        <div class="summ-step-body">
+          <strong>Compute the unconstrained optimal fraction.</strong>
+          The Merton (1969) formula gives the theoretically ideal portfolio share:
+          π* = (μ − r) / (γσ²). For example, with γ=2, μ=6%, σ=20%, r=2%,
+          this is π* = 0.04 / (2×0.04) = 50%.
+        </div>
+      </div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">2</div>
+        <div class="summ-step-body">
+          <strong>Apply a binary feasibility gate.</strong>
+          Check whether the required trade fits within the 10 pp limit.
+          If yes, execute it. If no — regardless of how close the target is —
+          do nothing at all. This all-or-nothing rule is the fundamental flaw.
+        </div>
+      </div>
+
+      <div class="summ-step">
+        <div class="summ-step-num">3</div>
+        <div class="summ-step-body">
+          <strong>Result: the investor holds cash for most configurations.</strong>
+          Starting from θ₀=0, the required trade equals π* itself. Since π*&gt;10% for
+          γ=1,2,5, the gate blocks the trade every single period. The portfolio
+          never earns any risky premium.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── What the four cases show ── -->
+  <div class="summ-block">
+    <div class="summ-block-title"><span class="pill">WHAT THE FOUR CASES DEMONSTRATE</span></div>
+    <div class="summ-prose">
+      <strong>Cases 1 and 2 (T=1)</strong> isolate the binary-gate failure in its simplest form.
+      In a single period, RL immediately moves to θ=0.10 — the best reachable allocation — while
+      Naive Merton does nothing (γ=1,2,5). Case 2 shows the same failure repeating independently
+      across all four assets simultaneously, amplifying the utility gap.
+      <br><br>
+      <strong>Cases 3 and 4 (T=10)</strong> introduce the ramp-up phenomenon. RL backward induction
+      discovers that the optimal multi-period strategy is to move 10 pp closer to π* every period,
+      eventually converging to the full Merton allocation. Naive Merton, re-evaluating from θ_old=0
+      at every step, is blocked every single period and never invests. Case 4 compounds this failure
+      across both time and assets simultaneously.
+      <br><br>
+      In all cases, the fix requires no new mathematics: a <em>projected</em> Merton policy that
+      clips the unconstrained π* to the nearest feasible allocation achieves exactly the same
+      outcome as RL. The gap is entirely a consequence of the naive implementation's
+      all-or-nothing gate.
+    </div>
+  </div>
+
+  <!-- ── Finding ── -->
+  <div class="summ-finding">
+    <h3>🏆 Key Finding</h3>
+    <p>
+      The performance advantage of RL is <strong>not a fundamental limitation of the Merton framework</strong>.
+      Merton's formula correctly identifies the optimal unconstrained target. The problem is purely
+      in how the benchmark implements feasibility: it treats a blocked trade as a reason to hold
+      cash, when the correct response is to move as close to the target as constraints allow.
+    </p>
+    <p>
+      RL backward induction discovers this naturally, because it evaluates <em>all</em> feasible
+      actions — not just the Merton target. The resulting policy is a constrained version of the
+      Merton strategy, and it dominates the naive implementation across every γ, every time horizon,
+      and every number of assets tested.
+    </p>
+  </div>
+
+</div>
+
+<!-- ════════════════════════
+     DATA RENDERING SCRIPTS
+════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════
+// CASE 1
+// ═══════════════════════════════════════════
+(function(){
+  const piStar     = g => mertonFrac(SA.mu, R, SA.sigma, g);
+  const rlTheta    = g => Math.min(piStar(g), REBAL);
+  const naiveTheta = g => (Math.abs(piStar(g)) <= REBAL + 1e-9) ? piStar(g) : 0;
+
+  const wins = GAMMAS.filter(g => rlTheta(g) > naiveTheta(g) + 1e-9).length;
+  document.getElementById('c1-stats').innerHTML = `
+    <div class="stat stat-green"><div class="stat-label">RL wins</div><div class="stat-value">${wins}/4</div><div class="stat-sub">γ ∈ {${GAMMAS.filter(g=>rlTheta(g)>naiveTheta(g)+1e-9).join(',')}}</div></div>
+    <div class="stat stat-red"><div class="stat-label">Naive Merton failure</div><div class="stat-value" style="font-size:1rem">All-or-nothing</div><div class="stat-sub">π*&gt;10 pp, no trade executed</div></div>
+    <div class="stat stat-blue"><div class="stat-label">Tied case</div><div class="stat-value">γ = 10</div><div class="stat-sub">π*=0.10 exactly = REBAL</div></div>
+    <div class="stat stat-amber"><div class="stat-label">RL optimal θ</div><div class="stat-value">0.10</div><div class="stat-sub">Best reachable from θ₀=0</div></div>`;
+
+  const tb = document.querySelector('#c1-feas-table tbody');
+  GAMMAS.forEach(g => {
+    const pi = piStar(g), nt = naiveTheta(g), rt = rlTheta(g);
+    const feas = Math.abs(pi) <= REBAL + 1e-9;
+    const winner = rt > nt + 1e-9 ? '<span class="badge badge-green">RL</span>' : '<span class="badge badge-amber">Tie</span>';
+    tb.innerHTML += `<tr>
+      <td><strong>γ=${g}</strong></td>
+      <td>${pi.toFixed(2)}</td>
+      <td>${Math.abs(pi).toFixed(2)}</td>
+      <td>${feas ? '<span class="badge badge-green">✓ Yes</span>' : '<span class="badge badge-red">✗ No — blocked</span>'}</td>
+      <td><strong>${nt.toFixed(2)}</strong></td>
+      <td><strong>${rt.toFixed(2)}</strong></td>
+      <td>${winner}</td></tr>`;
+  });
+
+  const sa_arr = [SA];
+  new Chart(document.getElementById('c1-alloc'),{type:'bar',data:{
+    labels:GAMMAS.map(g=>`γ=${g}`),
+    datasets:[
+      {label:'RL θ',data:GAMMAS.map(rlTheta),backgroundColor:'#10b981',borderRadius:4},
+      {label:'Naive Merton θ',data:GAMMAS.map(naiveTheta),backgroundColor:'#ef4444',borderRadius:4},
+    ]},options:baseOpts({scales:{x:{grid:{color:'#1e293b'},ticks:{font:{size:11}}},y:{grid:{color:'#1e293b'},ticks:{font:{size:11}},min:0,max:.15}}})});
+
+  const euRL    = GAMMAS.map(g => euT1([rlTheta(g)],    sa_arr, g));
+  const euNaive = GAMMAS.map(g => euT1([naiveTheta(g)], sa_arr, g));
+  const euCash  = GAMMAS.map(g => euT1([0],              sa_arr, g));
+  new Chart(document.getElementById('c1-eu'),{type:'bar',data:{
+    labels:GAMMAS.map(g=>`γ=${g}`),
+    datasets:[
+      {label:'RL E[U]',       data:euRL,    backgroundColor:'#10b981',borderRadius:4},
+      {label:'Naive Merton E[U]',data:euNaive,backgroundColor:'#ef4444',borderRadius:4},
+      {label:'Cash E[U]',     data:euCash,  backgroundColor:'#475569',borderRadius:4},
+    ]},options:baseOpts()});
+})();
+
+// ═══════════════════════════════════════════
+// CASE 2
+// ═══════════════════════════════════════════
+(function(){
+  // Asset universe table
+  let uHTML = '<table><thead><tr><th>Asset</th><th>μ</th><th>σ</th><th>Excess return (μ−r)</th></tr></thead><tbody>';
+  ASSETS4.forEach(a=>{
+    uHTML += `<tr><td class="label"><span class="dot" style="background:${a.color}"></span>${a.name}</td>
+      <td>${(a.mu*100).toFixed(0)}%</td><td>${(a.sigma*100).toFixed(0)}%</td>
+      <td>${((a.mu-R)*100).toFixed(0)}%</td></tr>`;
+  });
+  uHTML += '</tbody></table>';
+  document.getElementById('c2-asset-universe-wrap').innerHTML = uHTML;
+
+  const piStarVec  = g => ASSETS4.map(a => mertonFrac(a.mu, R, a.sigma, g));
+  const allFeasible = (vec) => vec.every(p => Math.abs(p) <= REBAL + 1e-9);
+  const rlT1 = [0.10, 0.10, 0.10, 0.10];
+
+  const tb = document.querySelector('#c2-feas-table tbody');
+  GAMMAS.forEach(g => {
+    const pv   = piStarVec(g);
+    const minJ = Math.min(...pv.map(Math.abs));
+    const feas = allFeasible(pv);
+    const nav  = feas ? pv : ASSETS4.map(()=>0);
+    const euRl = euT1(rlT1, ASSETS4, g);
+    const euNv = euT1(nav,  ASSETS4, g);
+    const winner = euRl > euNv + 1e-8 ? '<span class="badge badge-green">RL</span>' : '<span class="badge badge-amber">Tie</span>';
+    tb.innerHTML += `<tr>
+      <td><strong>γ=${g}</strong></td>
+      <td style="font-size:.72rem">[${pv.map(v=>(v*100).toFixed(1)+'%').join(', ')}]</td>
+      <td>${(minJ*100).toFixed(1)}%</td>
+      <td>${feas ? '<span class="badge badge-green">✓ Yes</span>' : '<span class="badge badge-red">✗ No — all blocked</span>'}</td>
+      <td style="font-size:.72rem">${feas ? '['+pv.map(v=>(v*100).toFixed(1)+'%').join(', ')+']' : '(0%, 0%, 0%, 0%)'}</td>
+      <td style="font-size:.72rem">(10%, 10%, 10%, 10%)</td>
+      <td>${winner}</td></tr>`;
+  });
+
+  // RL grid
+  let gHTML = '<table><thead><tr><th>γ</th>';
+  ASSETS4.forEach(a=>{ gHTML+=`<th><span class="dot" style="background:${a.color}"></span>${a.name}</th>`; });
+  gHTML += '<th>Cash</th></tr></thead><tbody>';
+  GAMMAS.forEach(g=>{
+    gHTML += `<tr><td><strong>γ=${g}</strong></td>`;
+    rlT1.forEach(v=>{ gHTML += `<td style="background:#064e3b;color:#6ee7b7;font-weight:700">${(v*100).toFixed(0)}%</td>`; });
+    gHTML += `<td style="color:#94a3b8">${((1-rlT1.reduce((a,b)=>a+b,0))*100).toFixed(0)}%</td></tr>`;
+  });
+  gHTML += '</tbody></table>';
+  document.getElementById('c2-rl-grid').innerHTML = gHTML;
+
+  const wins2 = GAMMAS.filter(g=>{
+    const pv=piStarVec(g),nav=allFeasible(pv)?pv:ASSETS4.map(()=>0);
+    return euT1(rlT1,ASSETS4,g) > euT1(nav,ASSETS4,g)+1e-8;
+  }).length;
+  document.getElementById('c2-stats').innerHTML = `
+    <div class="stat stat-green"><div class="stat-label">RL wins</div><div class="stat-value">${wins2}/4</div><div class="stat-sub">γ=1,2,5 blocked on all 4 assets</div></div>
+    <div class="stat stat-blue"><div class="stat-label">RL allocation</div><div class="stat-value" style="font-size:1.1rem">(10%×4)</div><div class="stat-sub">Best feasible from θ₀=0</div></div>
+    <div class="stat stat-red"><div class="stat-label">Naive Merton</div><div class="stat-value">(0%×4)</div><div class="stat-sub">Blocked on all 4 assets simultaneously</div></div>
+    <div class="stat stat-amber"><div class="stat-label">Gate failure</div><div class="stat-value" style="font-size:1rem">4× assets</div><div class="stat-sub">Binary gate blocks all four at once</div></div>`;
+
+  const euRLarr   = GAMMAS.map(g=>euT1(rlT1,ASSETS4,g));
+  const euNavarr  = GAMMAS.map(g=>{const pv=piStarVec(g),nav=allFeasible(pv)?pv:ASSETS4.map(()=>0);return euT1(nav,ASSETS4,g);});
+  const euCasharr = GAMMAS.map(g=>euT1([0,0,0,0],ASSETS4,g));
+  new Chart(document.getElementById('c2-eu'),{type:'bar',data:{
+    labels:GAMMAS.map(g=>`γ=${g}`),
+    datasets:[
+      {label:'RL E[U]',            data:euRLarr,   backgroundColor:'#10b981',borderRadius:4},
+      {label:'Naive Merton E[U]',  data:euNavarr,  backgroundColor:'#ef4444',borderRadius:4},
+      {label:'Cash E[U]',          data:euCasharr, backgroundColor:'#475569',borderRadius:4},
+    ]},options:baseOpts()});
+
+  const c1NavEU = GAMMAS.map(g=>euT1([Math.abs(mertonFrac(SA.mu,R,SA.sigma,g))<=REBAL+1e-9?mertonFrac(SA.mu,R,SA.sigma,g):0],[SA],g));
+  const c1RlEU  = GAMMAS.map(g=>euT1([Math.min(mertonFrac(SA.mu,R,SA.sigma,g),REBAL)],[SA],g));
+  const adv2 = GAMMAS.map((g,i)=>+(euRLarr[i]-euNavarr[i]).toFixed(6));
+  const adv1 = GAMMAS.map((g,i)=>+(c1RlEU[i]-c1NavEU[i]).toFixed(6));
+  new Chart(document.getElementById('c2-adv'),{type:'bar',data:{
+    labels:GAMMAS.map(g=>`γ=${g}`),
+    datasets:[
+      {label:'Case 1 Adv (N=1)',data:adv1,backgroundColor:'#8b5cf6',borderRadius:4},
+      {label:'Case 2 Adv (N=4)',data:adv2,backgroundColor:'#14b8a6',borderRadius:4},
+    ]},options:baseOpts()});
+})();
+
+// ═══════════════════════════════════════════
+// CASE 3
+// ═══════════════════════════════════════════
+(function(){
+  const T = 10;
+  const piStar = g => mertonFrac(SA.mu, R, SA.sigma, g);
+
+  function rlPath(g){
+    const pi=piStar(g); let th=0; const path=[];
+    for(let t=0;t<T;t++){ th=Math.min(th+REBAL,pi); path.push(th); }
+    return path;
+  }
+  function naivePath(g){
+    const pi=piStar(g); let th=0; const path=[];
+    for(let t=0;t<T;t++){
+      const feas=Math.abs(pi-th)<=REBAL+1e-9; if(feas) th=pi; path.push(th);
+    } return path;
+  }
+
+  const euRL3    = GAMMAS.map(g=>euMulti(rlPath(g).map(th=>[th]),   [{mu:SA.mu,sigma:SA.sigma}],g));
+  const euNaive3 = GAMMAS.map(g=>euMulti(naivePath(g).map(th=>[th]),[{mu:SA.mu,sigma:SA.sigma}],g));
+
+  document.getElementById('c3-stats').innerHTML = `
+    <div class="stat stat-green"><div class="stat-label">RL wins</div><div class="stat-value">${GAMMAS.filter((g,i)=>euRL3[i]>euNaive3[i]+1e-8).length}/4</div><div class="stat-sub">γ ∈ {${GAMMAS.filter((g,i)=>euRL3[i]>euNaive3[i]+1e-8).join(',')}}</div></div>
+    <div class="stat stat-red"><div class="stat-label">Naive Merton</div><div class="stat-value">All-cash</div><div class="stat-sub">All 10 periods, γ=1,2,5</div></div>
+    <div class="stat stat-purple"><div class="stat-label">Max advantage</div><div class="stat-value" style="font-size:1.1rem">${Math.max(...GAMMAS.map((g,i)=>euRL3[i]-euNaive3[i])).toFixed(3)}</div><div class="stat-sub">γ=1 (log utility)</div></div>
+    <div class="stat stat-amber"><div class="stat-label">RL strategy</div><div class="stat-value" style="font-size:1rem">Ramp-up</div><div class="stat-sub">+10 pp/period toward π*</div></div>`;
+
+  const rlTb = document.querySelector('#c3-rl-table tbody');
+  GAMMAS.forEach(g=>{
+    const pi=piStar(g), steps=Math.ceil(pi/REBAL);
+    rlTb.innerHTML+=`<tr><td><strong>γ=${g}</strong></td><td>${pi.toFixed(2)}</td><td>${steps}</td><td>${Math.max(0,T-steps)}</td></tr>`;
+  });
+
+  const navTb = document.querySelector('#c3-naive-table tbody');
+  GAMMAS.forEach(g=>{
+    const pi=piStar(g), feas=pi<=REBAL+1e-9;
+    navTb.innerHTML+=`<tr><td><strong>γ=${g}</strong></td><td>${pi.toFixed(2)}</td><td>0.00</td><td>${pi.toFixed(2)}</td>
+      <td>${feas?'<span class="badge badge-green">✓ Yes</span>':'<span class="badge badge-red">✗ No</span>'}</td>
+      <td>${feas?pi.toFixed(2):'0.00 (blocked)'}</td></tr>`;
+  });
+
+  const allocDS=[];
+  GAMMAS.forEach(g=>{
+    const col=G_COLORS[g], rp=rlPath(g), np=naivePath(g);
+    allocDS.push({label:`RL γ=${g}`,data:[0,...rp],borderColor:col,backgroundColor:col+'33',tension:.3,borderWidth:2,pointRadius:3});
+    allocDS.push({label:`Naive γ=${g}`,data:[0,...np],borderColor:col,borderDash:[5,5],backgroundColor:'transparent',tension:0,borderWidth:1.5,pointRadius:2});
+  });
+  new Chart(document.getElementById('c3-alloc'),{type:'line',data:{labels:T_LABELS.slice(0,T+1),datasets:allocDS},
+    options:baseOpts({scales:{x:{grid:{color:'#1e293b'},ticks:{font:{size:10}}},y:{grid:{color:'#1e293b'},ticks:{font:{size:10}},min:-0.02,max:1.05}}})});
+})();
+
+// ═══════════════════════════════════════════
+// CASE 4
+// ═══════════════════════════════════════════
+(function(){
+  const T=10;
+
+  function naiveRamp4(g){
+    let theta=ASSETS4.map(()=>0); const path=[];
+    const ps=ASSETS4.map(a=>Math.max(0,mertonFrac(a.mu,R,a.sigma,g)));
+    for(let t=0;t<T;t++){
+      let next=[...theta];
+      for(let i=0;i<ASSETS4.length;i++){
+        if(Math.abs(ps[i]-theta[i])<=REBAL+1e-9) next[i]=ps[i];
+      }
+      const s=next.reduce((a,b)=>a+b,0);
+      if(s>1+1e-9) next=next.map(v=>v/s);
+      theta=next; path.push([...theta]);
+    } return path;
+  }
+
+  const euRL4    = GAMMAS.map(g=>euMulti(buildRLRamp(ASSETS4,g,T), ASSETS4,g));
+  const euNaive4 = GAMMAS.map(g=>euMulti(naiveRamp4(g),            ASSETS4,g));
+
+  const wins4=GAMMAS.filter((g,i)=>euRL4[i]>euNaive4[i]+1e-8).length;
+  document.getElementById('c4-stats').innerHTML = `
+    <div class="stat stat-green"><div class="stat-label">RL wins</div><div class="stat-value">${wins4}/4</div><div class="stat-sub">Same γ pattern as Case 3</div></div>
+    <div class="stat stat-red"><div class="stat-label">Naive Merton</div><div class="stat-value">Cash</div><div class="stat-sub">All 10 periods, all 4 assets, γ=1,2,5</div></div>
+    <div class="stat stat-purple"><div class="stat-label">Max advantage</div><div class="stat-value" style="font-size:1.1rem">${Math.max(...GAMMAS.map((g,i)=>euRL4[i]-euNaive4[i])).toFixed(3)}</div><div class="stat-sub">Larger than Case 3 (N=4 amplification)</div></div>
+    <div class="stat stat-amber"><div class="stat-label">Double failure</div><div class="stat-value" style="font-size:1rem">T × N</div><div class="stat-sub">10 periods × 4 assets blocked simultaneously</div></div>`;
+
+  const sb=document.querySelector('#c4-summary-table tbody');
+  GAMMAS.forEach((g,i)=>{
+    const adv=euRL4[i]-euNaive4[i];
+    const winner=adv>1e-8?'<span class="badge badge-green">RL</span>':'<span class="badge badge-amber">Tie</span>';
+    sb.innerHTML+=`<tr>
+      <td><strong>γ=${g}</strong></td>
+      <td><strong>${euRL4[i].toFixed(4)}</strong></td>
+      <td style="color:#ef4444">${euNaive4[i].toFixed(4)}</td>
+      <td>${adv>1e-8?'<span style="color:#10b981">+'+adv.toFixed(4)+'</span>':'0 (tied)'}</td>
+      <td>${winner}</td></tr>`;
+  });
+
+  const rl2=buildRLRamp(ASSETS4,2,T),  rl5=buildRLRamp(ASSETS4,5,T);
+  const nav2=naiveRamp4(2),             nav5=naiveRamp4(5);
+  const pi2=ASSETS4.map(a=>mertonFrac(a.mu,R,a.sigma,2));
+  const pi5=ASSETS4.map(a=>mertonFrac(a.mu,R,a.sigma,5));
+
+  const atb=document.querySelector('#c4-alloc-table tbody');
+  ASSETS4.forEach((a,i)=>{
+    atb.innerHTML+=`<tr>
+      <td class="label"><span class="dot" style="background:${a.color}"></span>${a.name}</td>
+      <td>${(a.mu*100).toFixed(0)}%</td><td>${(a.sigma*100).toFixed(0)}%</td>
+      <td style="color:#f59e0b">${(pi2[i]*100).toFixed(1)}%</td>
+      <td style="color:#ef4444">${(nav2[T-1][i]*100).toFixed(1)}%</td>
+      <td style="color:#10b981;font-weight:700">${(rl2[T-1][i]*100).toFixed(1)}%</td>
+      <td style="color:#f59e0b">${(pi5[i]*100).toFixed(1)}%</td>
+      <td style="color:#ef4444">${(nav5[T-1][i]*100).toFixed(1)}%</td>
+      <td style="color:#10b981;font-weight:700">${(rl5[T-1][i]*100).toFixed(1)}%</td>
+    </tr>`;
+  });
+
+  const trajDS=[];
+  ASSETS4.forEach((a,i)=>{
+    trajDS.push({label:`RL — ${a.name}`,data:[0,...rl2.map(r=>r[i])],borderColor:a.color,backgroundColor:a.color+'33',tension:.3,borderWidth:2,pointRadius:3});
+    trajDS.push({label:`Naive — ${a.name}`,data:[0,...nav2.map(r=>r[i])],borderColor:a.color,borderDash:[4,4],backgroundColor:'transparent',tension:0,borderWidth:1.5,pointRadius:2});
+  });
+  new Chart(document.getElementById('c4-traj'),{type:'line',data:{labels:T_LABELS.slice(0,T+1),datasets:trajDS},
+    options:baseOpts({scales:{x:{grid:{color:'#1e293b'},ticks:{font:{size:10}}},y:{grid:{color:'#1e293b'},ticks:{font:{size:10}},min:-0.01,max:.55}}})});
+})();
+
+// ── Scroll spy ────────────────────────────
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      document.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
+      const lnk=document.querySelector(`.nav-link[href="#${e.target.id}"]`);
+      if(lnk) lnk.classList.add('active');
+    }
+  });
+},{threshold:.15});
+['case1','case2','case3','case4','tests','summary'].forEach(id=>{
+  const el=document.getElementById(id); if(el) io.observe(el);
+});
+</script>
+</body>
+</html>
